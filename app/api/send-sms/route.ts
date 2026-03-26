@@ -41,15 +41,5 @@ export async function POST(req: NextRequest) {
 }
 
 function buildSMSBody(session: PatientSession): string {
-  return `Kyron Medical — Appointment Confirmed!
-
-Patient: ${session.patientName}
-Doctor: ${session.matchedDoctorName} (${session.matchedDoctorSpecialty})
-When: ${session.selectedSlotDatetime}
-Booking ID: ${session.bookingId}
-
-Location: ${officeInfo.address}
-Questions? Call us: ${officeInfo.phone}
-
-Reply STOP to opt out.`.trim();
+  return `Kyron Medical: Appt confirmed with ${session.matchedDoctorName} on ${session.selectedSlotDatetime}. Booking ID: ${session.bookingId}. Call ${officeInfo.phone} for help.`;
 }
