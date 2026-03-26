@@ -1,8 +1,8 @@
 import { PatientSession } from './session';
+import * as fs from 'fs';
+import * as path from 'path';
 
-// In-memory store keyed by phone number
-// This powers the "returning caller" feature
-const conversationMemory: Record<string, StoredConversation> = {};
+const MEMORY_FILE = path.join(process.cwd(), 'conversation-memory.json');
 
 export interface StoredConversation {
   phone: string;
@@ -11,6 +11,32 @@ export interface StoredConversation {
   lastUpdated: string;
   callCount: number;
 }
+
+// Load from file on startup
+function loadMemory(): Record<string, StoredConversation> {
+  try {
+    if (fs.existsSync(MEMORY_FILE)) {
+      const data = fs.readFileSync(MEMORY_FILE, 'utf-8');
+      console.log('[Memory] Loaded conversation memory from file');
+      return JSON.parse(data);
+    }
+  } catch (err) {
+    console.error('[Memory] Failed to load memory file:', err);
+  }
+  return {};
+}
+
+// Save to file
+function saveMemory(memory: Record<string, StoredConversation>): void {
+  try {
+    fs.writeFileSync(MEMORY_FILE, JSON.stringify(memory, null, 2));
+  } catch (err) {
+    console.error('[Memory] Failed to save memory file:', err);
+  }
+}
+
+// Initialize from file
+const conversationMemory: Record<string, StoredConversation> = loadMemory();
 
 export function saveConversation(phone: string, session: PatientSession): void {
   const normalized = normalizePhone(phone);
@@ -22,6 +48,7 @@ export function saveConversation(phone: string, session: PatientSession): void {
     lastUpdated: new Date().toISOString(),
     callCount: existing ? existing.callCount + 1 : 1
   };
+  saveMemory(conversationMemory);
   console.log(`[Memory] Saved conversation for ${normalized} — call count: ${conversationMemory[normalized].callCount}`);
 }
 
@@ -56,7 +83,6 @@ export function buildRecallGreeting(stored: StoredConversation): string {
 }
 
 export function normalizePhone(phone: string): string {
-  // Strip everything except digits
   return phone.replace(/\D/g, '');
 }
 
