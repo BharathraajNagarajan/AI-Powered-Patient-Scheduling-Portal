@@ -2,8 +2,7 @@ module.exports = {
   apps: [
     {
       name: "ai-patient-scheduling-portal",
-      script: "node_modules/next/dist/bin/next",
-      args: "start -p 3000",
+      script: "scripts/start.js",
       cwd: __dirname,
       exec_mode: "cluster",
       instances: "max",
@@ -14,6 +13,7 @@ module.exports = {
       error_file: "./logs/error.log",
       env_production: {
         NODE_ENV: "production",
+        HOST: "127.0.0.1",
         PORT: 3000,
       },
     },

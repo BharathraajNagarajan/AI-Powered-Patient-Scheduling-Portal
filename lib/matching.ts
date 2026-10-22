@@ -87,6 +87,12 @@ async function providerVectors(): Promise<{ providerId: string; vector: number[]
   return entries.map((e) => ({ providerId: e.providerId, vector: e.vector as number[] }));
 }
 
+export async function scoreAllProviders(complaint: string): Promise<ScoredProvider[]> {
+  const providers = await providerVectors();
+  const [vector] = await embed([complaint]);
+  return rankProviders(vector, providers, providers.length);
+}
+
 export async function matchProvider(complaint: string): Promise<MatchResult> {
   if (isUnsupported(complaint)) {
     return { doctor: null, score: null, top: [], path: "unsupported" };
@@ -94,9 +100,7 @@ export async function matchProvider(complaint: string): Promise<MatchResult> {
 
   if (semanticEnabled()) {
     try {
-      const providers = await providerVectors();
-      const [vector] = await embed([complaint]);
-      const top = rankProviders(vector, providers);
+      const top = (await scoreAllProviders(complaint)).slice(0, 2);
       const best = pickMatch(top);
       return {
         doctor: best ? getDoctor(best.providerId) : null,

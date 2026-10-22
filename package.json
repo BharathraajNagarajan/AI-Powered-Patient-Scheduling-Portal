@@ -5,9 +5,13 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start",
-    "lint": "eslint",
-    "test": "vitest run"
+    "start": "node scripts/start.js",
+    "lint": "eslint app components hooks lib tests scripts",
+    "test": "vitest run",
+    "test:live": "node scripts/run-live-tests.js",
+    "calibrate": "tsx scripts/calibrate-matching.ts",
+    "verify:integrity": "tsx scripts/verify-integrity.ts",
+    "loadtest:server": "node scripts/loadtest-server.js"
   },
   "dependencies": {
     "better-sqlite3": "^13.0.3",
@@ -28,6 +32,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.1",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^5.0.5"
   }

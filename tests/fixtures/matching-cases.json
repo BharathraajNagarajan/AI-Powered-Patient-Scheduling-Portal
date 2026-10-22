@@ -1,0 +1,21 @@
+[
+  { "text": "my knee has been hurting for two weeks", "kind": "supported", "expected": "Orthopedics" },
+  { "text": "lower back pain after lifting boxes", "kind": "supported", "expected": "Orthopedics" },
+  { "text": "I twisted my ankle playing soccer", "kind": "supported", "expected": "Orthopedics" },
+  { "text": "stiff shoulder in the mornings", "kind": "supported", "expected": "Orthopedics" },
+  { "text": "my heart is racing for no reason", "kind": "supported", "expected": "Cardiology" },
+  { "text": "chest feels tight when I climb stairs", "kind": "supported", "expected": "Cardiology" },
+  { "text": "my blood pressure readings have been high", "kind": "supported", "expected": "Cardiology" },
+  { "text": "itchy red patches on my elbows", "kind": "supported", "expected": "Dermatology" },
+  { "text": "a mole that changed shape", "kind": "supported", "expected": "Dermatology" },
+  { "text": "bad acne breakouts on my jaw", "kind": "supported", "expected": "Dermatology" },
+  { "text": "burning in my chest after meals", "kind": "supported", "expected": "Gastroenterology" },
+  { "text": "constant bloating and cramps", "kind": "supported", "expected": "Gastroenterology" },
+  { "text": "stomach pain and diarrhea for a week", "kind": "supported", "expected": "Gastroenterology" },
+  { "text": "my eye is red and watery", "kind": "unsupported", "expected": null },
+  { "text": "toothache on the left side", "kind": "unsupported", "expected": null },
+  { "text": "my ear has been ringing", "kind": "unsupported", "expected": null },
+  { "text": "I feel anxious all the time", "kind": "unsupported", "expected": null },
+  { "text": "I feel tired all the time", "kind": "ambiguous", "expected": null },
+  { "text": "pain everywhere", "kind": "ambiguous", "expected": null }
+]

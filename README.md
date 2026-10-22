@@ -85,6 +85,8 @@ Environment variables:
 | `TWILIO_ACCOUNT_SID`, `TWILIO_AUTH_TOKEN`, `TWILIO_PHONE_NUMBER` | Confirmation text message |
 | `DATA_DIR` | Directory for the SQLite file (default `./data`) |
 | `MOCK_LLM` | `true` for deterministic fake chat and keyword matching |
+| `HOST`, `PORT` | Address the production server binds to (defaults `127.0.0.1` and `3000`) |
+| `SLOT_HORIZON_DAYS` | Days of slots to generate (default 60) |
 
 ## Testing
 
@@ -94,9 +96,13 @@ npm test
 
 Vitest runs against a temporary database per test. The suite covers input validation, reservation expiry, 20 parallel booking attempts on one slot (exactly one succeeds), mapping from structured model output to state changes (bad slot numbers and confirmation without a hold are rejected), cosine similarity and the match threshold, retry behavior, and the rate limiter.
 
+## Matching calibration
+
+With `OPENAI_API_KEY` in `.env.local`, `npm run calibrate` scores a labeled set of complaints (`tests/fixtures/matching-cases.json`) against every provider, sweeps the threshold, and prints the best value. Add `-- --apply` to write it into `lib/matching.ts`. `npm run test:live` runs the same cases as tests against the real API; plain `npm test` stays offline.
+
 ## Load testing
 
-`loadtest/k6.js` ramps to 500 virtual users over 5 minutes against a server running with `MOCK_LLM=true`. See [loadtest/README.md](loadtest/README.md) for how to run it locally and on the server.
+`loadtest/k6.js` ramps to 500 virtual users over 5 minutes against a separate instance started with `npm run loadtest:server` (mock model, port 3100, fresh database). `npm run verify:integrity` checks the database afterward. See [loadtest/README.md](loadtest/README.md) for how to run it locally and on the server.
 
 | Date | Target | Peak VUs | http_req_failed | p95 latency | Notes |
 |------|--------|----------|-----------------|-------------|-------|
@@ -111,7 +117,7 @@ Target: Ubuntu 22.04 with a domain pointing at the server.
 3. Run `bash deploy/deploy.sh`. It pulls, installs, builds, starts or reloads the PM2 cluster (`ecosystem.config.js`), and checks `/api/health`.
 4. Get a certificate with `sudo certbot certonly --nginx -d <your domain>`, copy `deploy/nginx.conf` to `/etc/nginx/sites-available/`, replace the domain, enable it, and run `sudo nginx -t && sudo systemctl reload nginx`.
 
-Nginx overwrites `X-Forwarded-For` with the client address, which the application uses for rate limiting. Logs go to `./logs`.
+The app listens on 127.0.0.1 only, so just Nginx can reach it. Nginx overwrites `X-Forwarded-For` with the client address, which the application uses for rate limiting, so clients cannot spoof it. Logs go to `./logs`.
 
 ## Known limitations
 

@@ -56,7 +56,7 @@ export const doctors: Doctor[] = [
 export const UNSUPPORTED_CONDITIONS = [
   "eye", "vision", "ophthalmology", "dental", "teeth", "tooth",
   "psychiatric", "mental health", "anxiety", "depression", "psychology",
-  "emergency", "ear", "hearing", "nose", "throat", "ENT",
+  "emergency", "ear", "hearing", "nose", "throat", "ENT", "toothache", "anxious",
 ];
 
 export function providerProfile(doctor: Doctor): string {
