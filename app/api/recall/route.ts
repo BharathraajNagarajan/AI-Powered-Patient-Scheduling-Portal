@@ -1,51 +1,48 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getConversation, buildRecallGreeting } from '@/lib/memory';
+import { timingSafeEqual } from "node:crypto";
+import { NextRequest, NextResponse } from "next/server";
+import { parseBody } from "@/lib/http";
+import { log } from "@/lib/log";
+import { buildRecallGreeting, getConversation } from "@/lib/memory";
+import { bookingView, providerView } from "@/lib/sessions";
+import { recallSchema } from "@/lib/validation";
 
-export async function POST(req: NextRequest) {
-  try {
-    const { phone } = await req.json();
-    if (!phone) {
-      return NextResponse.json({ found: false, error: 'Missing phone number' }, { status: 400 });
-    }
-    const stored = getConversation(phone);
-    if (!stored) {
-      return NextResponse.json({ found: false });
-    }
-    const greeting = buildRecallGreeting(stored);
-    return NextResponse.json({
-      found: true,
-      patientName: stored.patientName,
-      greeting,
-      lastSession: stored.lastSession,
-      callCount: stored.callCount,
-      lastUpdated: stored.lastUpdated
-    });
-  } catch (error) {
-    console.error('[Recall] Error:', error);
-    return NextResponse.json({ found: false, error: 'Recall failed' }, { status: 500 });
-  }
+function authorized(req: NextRequest): boolean {
+  const expected = process.env.VAPI_WEBHOOK_SECRET;
+  const provided = req.headers.get("x-vapi-secret");
+  if (!expected || !provided) return false;
+  const a = Buffer.from(expected);
+  const b = Buffer.from(provided);
+  return a.length === b.length && timingSafeEqual(a, b);
 }
 
-export async function GET(req: NextRequest) {
+export async function POST(req: NextRequest) {
+  if (!authorized(req)) {
+    return NextResponse.json({ found: false, error: "Unauthorized" }, { status: 401 });
+  }
+
+  const parsed = await parseBody(req, recallSchema);
+  if ("response" in parsed) return parsed.response;
+
   try {
-    const { searchParams } = new URL(req.url);
-    const phone = searchParams.get('phone');
-    if (!phone) {
-      return NextResponse.json({ found: false }, { status: 400 });
-    }
-    const stored = getConversation(phone);
-    if (!stored) {
-      return NextResponse.json({ found: false });
-    }
-    const greeting = buildRecallGreeting(stored);
+    const stored = getConversation(parsed.data.phone);
+    if (!stored) return NextResponse.json({ found: false });
+    const { session } = stored;
+    log("info", "recall_hit", { route: "/api/recall", sessionId: session.id });
     return NextResponse.json({
       found: true,
       patientName: stored.patientName,
-      greeting,
-      callCount: stored.callCount
+      greeting: buildRecallGreeting(stored),
+      callCount: stored.callCount,
+      lastUpdated: stored.lastUpdated,
+      summary: {
+        chiefComplaint: session.chiefComplaint,
+        provider: providerView(session)?.name ?? null,
+        bookingStatus: session.bookingStatus,
+        booking: bookingView(session),
+      },
     });
-  } catch (error) {
-    console.error('[Recall] GET Error:', error);
-    return NextResponse.json({ found: false }, { status: 500 });
+  } catch (err) {
+    log("error", "recall_failed", { route: "/api/recall", error: err });
+    return NextResponse.json({ found: false, error: "Recall failed" }, { status: 500 });
   }
 }

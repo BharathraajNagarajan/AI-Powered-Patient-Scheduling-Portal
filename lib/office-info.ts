@@ -1,8 +1,11 @@
+const clinicName = "Harbor Health Clinic";
+
 export const officeInfo = {
-  name: "Kyron Medical",
+  name: clinicName,
+  timezone: "America/Los_Angeles",
   address: "1847 Cresthaven Drive, Suite 12, Providence, Rhode Island 02906",
   phone: "(401) 738-2294",
-  email: "care@kyronmedical.com",
+  email: "care@harborhealth.example",
   hours: {
     monday: "8:00 AM - 5:00 PM",
     tuesday: "8:00 AM - 5:00 PM",
@@ -43,7 +46,7 @@ export const officeInfo = {
     "Preventive care and annual checkups",
     "Chronic condition management"
   ],
-  emergencyNote: "Kyron Medical does not handle medical emergencies. If you are experiencing a medical emergency please call 911 immediately or go to your nearest emergency room.",
+  emergencyNote: `${clinicName} does not handle medical emergencies. If you are experiencing a medical emergency please call 911 immediately or go to your nearest emergency room.`,
   prescriptionRefill: {
     processingTime: "24 to 48 business hours",
     instructions: "Refill requests are reviewed by your physician and sent to your preferred pharmacy upon approval.",
@@ -52,3 +55,5 @@ export const officeInfo = {
   parking: "Free parking available in the Cresthaven Professional Plaza lot. Enter from the side entrance on Millbrook Lane.",
   insurance: "We accept most major insurance plans including BlueCross BlueShield, Aetna, Cigna, United Healthcare, and Medicare."
 };
+
+export const PRODUCT_NAME = "AI-Powered Patient Scheduling Portal";
