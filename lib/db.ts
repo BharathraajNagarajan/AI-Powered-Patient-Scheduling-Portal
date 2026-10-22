@@ -35,6 +35,8 @@ CREATE TABLE IF NOT EXISTS sessions (
   sms_opt_in INTEGER NOT NULL DEFAULT 0,
   matched_provider_id TEXT REFERENCES providers(id),
   match_score REAL,
+  match_stage TEXT,
+  match_candidates TEXT,
   selected_slot_id TEXT REFERENCES slots(id),
   booking_status TEXT NOT NULL DEFAULT 'pending' CHECK (booking_status IN ('pending','confirmed')),
   booking_id TEXT,
@@ -98,6 +100,9 @@ export function getDb(): Database.Database {
   db.pragma("busy_timeout = 5000");
   db.pragma("foreign_keys = ON");
   db.exec(SCHEMA);
+  const sessionColumns = (db.prepare("PRAGMA table_info(sessions)").all() as { name: string }[]).map((c) => c.name);
+  if (!sessionColumns.includes("match_stage")) db.exec("ALTER TABLE sessions ADD COLUMN match_stage TEXT");
+  if (!sessionColumns.includes("match_candidates")) db.exec("ALTER TABLE sessions ADD COLUMN match_candidates TEXT");
   seedProviders(db);
   ensureSlots(db);
   instance = db;

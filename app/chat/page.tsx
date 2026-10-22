@@ -58,7 +58,7 @@ export default function ChatPage() {
         </div>
         {ui.provider && (
           <div className="mt-2">
-            <ProviderCard provider={ui.provider} />
+            <ProviderCard name={ui.provider.name} specialty={ui.provider.specialty} matchScore={ui.provider.matchScore} />
           </div>
         )}
         {call.status === "connected" && (
@@ -76,6 +76,19 @@ export default function ChatPage() {
         onSend={chat.send}
       >
         {error && <ErrorBanner message={error} onDismiss={chat.error ? chat.dismissError : undefined} />}
+        {ui.choices && (
+          <div className="flex flex-col gap-2">
+            {ui.choices.map((choice) => (
+              <ProviderCard
+                key={choice.id}
+                name={choice.name}
+                specialty={choice.specialty}
+                disabled={busy}
+                onChoose={() => chat.selectProvider(choice.id)}
+              />
+            ))}
+          </div>
+        )}
         {ui.booking ? (
           <BookingConfirmationCard booking={ui.booking} />
         ) : (

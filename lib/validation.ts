@@ -88,6 +88,11 @@ export const selectSlotSchema = z.object({
   slotId: z.string().min(1).max(64),
 });
 
+export const selectProviderSchema = z.object({
+  sessionId: sessionIdSchema,
+  providerId: z.string().min(1).max(32),
+});
+
 export const initiateCallSchema = z.object({ sessionId: sessionIdSchema });
 
 export const recallSchema = z.object({ phone: z.string().min(7).max(32) });

@@ -4,18 +4,31 @@ import { getDb } from "./db";
 import { doctors, getDoctor, isUnsupported, matchDoctor, providerProfile, type Doctor } from "./doctors";
 import { log } from "./log";
 
-export const MATCH_THRESHOLD = 0.35;
+export const HIGH_THRESHOLD = 0.20;
+export const LOW_THRESHOLD = 0.12;
+export const MIN_MARGIN = 0.11;
 export const EMBEDDING_MODEL = "text-embedding-3-small";
 
 export type MatchPath = "semantic" | "keyword" | "unsupported" | "none";
+export type MatchStatus = "matched" | "uncertain" | "none";
 
 export interface ScoredProvider {
   providerId: string;
   score: number;
 }
 
+export interface MatchBand {
+  high: number;
+  low: number;
+  margin: number;
+}
+
+export const DEFAULT_BAND: MatchBand = { high: HIGH_THRESHOLD, low: LOW_THRESHOLD, margin: MIN_MARGIN };
+
 export interface MatchResult {
+  status: MatchStatus;
   doctor: Doctor | null;
+  candidates: Doctor[];
   score: number | null;
   top: ScoredProvider[];
   path: MatchPath;
@@ -45,9 +58,12 @@ export function rankProviders(
     .slice(0, take);
 }
 
-export function pickMatch(top: ScoredProvider[], threshold: number = MATCH_THRESHOLD): ScoredProvider | null {
-  const best = top[0];
-  return best && best.score >= threshold ? best : null;
+export function classifyScores(top: ScoredProvider[], band: MatchBand = DEFAULT_BAND): MatchStatus {
+  const first = top[0];
+  if (!first || first.score < band.low) return "none";
+  const second = top[1];
+  const margin = second ? first.score - second.score : first.score;
+  return first.score >= band.high && margin >= band.margin ? "matched" : "uncertain";
 }
 
 function semanticEnabled(): boolean {
@@ -83,6 +99,10 @@ async function providerVectors(): Promise<{ providerId: string; vector: number[]
       m.vector = vectors[i];
       store.run(EMBEDDING_MODEL, m.hash, JSON.stringify(vectors[i]));
     });
+    const keep = entries.map((e) => e.hash);
+    db.prepare(
+      `DELETE FROM provider_embeddings WHERE model = ? AND text_hash NOT IN (${keep.map(() => "?").join(",")})`
+    ).run(EMBEDDING_MODEL, ...keep);
   }
   return entries.map((e) => ({ providerId: e.providerId, vector: e.vector as number[] }));
 }
@@ -93,18 +113,24 @@ export async function scoreAllProviders(complaint: string): Promise<ScoredProvid
   return rankProviders(vector, providers, providers.length);
 }
 
+function toDoctors(top: ScoredProvider[]): Doctor[] {
+  return top.map((t) => getDoctor(t.providerId)).filter((d): d is Doctor => d !== null);
+}
+
 export async function matchProvider(complaint: string): Promise<MatchResult> {
   if (isUnsupported(complaint)) {
-    return { doctor: null, score: null, top: [], path: "unsupported" };
+    return { status: "none", doctor: null, candidates: [], score: null, top: [], path: "unsupported" };
   }
 
   if (semanticEnabled()) {
     try {
       const top = (await scoreAllProviders(complaint)).slice(0, 2);
-      const best = pickMatch(top);
+      const status = classifyScores(top);
       return {
-        doctor: best ? getDoctor(best.providerId) : null,
-        score: best ? best.score : null,
+        status,
+        doctor: status === "matched" ? getDoctor(top[0].providerId) : null,
+        candidates: status === "uncertain" ? toDoctors(top) : [],
+        score: status === "matched" ? top[0].score : null,
         top,
         path: "semantic",
       };
@@ -114,5 +140,12 @@ export async function matchProvider(complaint: string): Promise<MatchResult> {
   }
 
   const doctor = matchDoctor(complaint);
-  return { doctor, score: null, top: [], path: doctor ? "keyword" : "none" };
+  return {
+    status: doctor ? "matched" : "none",
+    doctor,
+    candidates: [],
+    score: null,
+    top: [],
+    path: doctor ? "keyword" : "none",
+  };
 }

@@ -1,7 +1,7 @@
 import { officeInfo } from "./office-info";
 
 export const ERROR_MESSAGES = {
-  noSpecialist: `I'm sorry, we don't currently treat that condition at ${officeInfo.name}. I'd recommend consulting a specialist. Is there anything else I can help you with?`,
+  noSpecialist: `I'm sorry, we don't currently treat that condition at ${officeInfo.name}. I'd recommend consulting a specialist. If you would like help finding the right care, please call our office at ${officeInfo.phone}.`,
   noSlots: `I'm sorry, there are no available appointments for that request right now. Please call our office directly at ${officeInfo.phone} and we'll do our best to accommodate you.`,
   apiTimeout: "I'm taking a bit longer than expected. Please give me just a moment. If this continues, please refresh the page.",
   callFailed: "I wasn't able to connect the call right now. Would you like to continue our conversation here in the chat instead?",

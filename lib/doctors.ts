@@ -2,6 +2,8 @@ export interface Doctor {
   id: string;
   name: string;
   specialty: string;
+  focus: string;
+  profile: string;
   keywords: string[];
   times: string[];
 }
@@ -11,6 +13,9 @@ export const doctors: Doctor[] = [
     id: "doc-001",
     name: "Dr. Anand Subramaniam",
     specialty: "Orthopedics",
+    focus: "your muscles, bones or joints",
+    profile:
+      "Joint, bone, muscle, back, neck, knee, hip, shoulder, ankle and wrist pain. Sprains, twisted ankle, stiffness, sports injuries, lifting injuries, fractures, arthritis.",
     keywords: [
       "knee", "joint", "bone", "back", "spine", "hip", "shoulder",
       "fracture", "ligament", "tendon", "arthritis", "orthopedic",
@@ -22,6 +27,9 @@ export const doctors: Doctor[] = [
     id: "doc-002",
     name: "Dr. Mei-Lin Cho",
     specialty: "Cardiology",
+    focus: "your heart, chest or blood pressure",
+    profile:
+      "Heart racing, pounding or skipping heartbeat, palpitations, chest pressure or tightness with exertion, high blood pressure readings, shortness of breath on stairs, cholesterol.",
     keywords: [
       "heart", "chest", "chest pain", "palpitations", "blood pressure",
       "circulation", "heartbeat", "cardiac", "cardiovascular", "shortness of breath",
@@ -33,6 +41,9 @@ export const doctors: Doctor[] = [
     id: "doc-003",
     name: "Dr. Camila Reyes",
     specialty: "Dermatology",
+    focus: "your skin, hair or nails",
+    profile:
+      "Rashes, itchy or red patches, acne and breakouts, moles that change shape or color, eczema, psoriasis, hives, hair loss, nail problems, skin infections, sunburn.",
     keywords: [
       "skin", "rash", "acne", "eczema", "mole", "psoriasis", "itching",
       "hives", "dermatology", "redness", "bumps", "lesion", "hair loss",
@@ -44,6 +55,9 @@ export const doctors: Doctor[] = [
     id: "doc-004",
     name: "Dr. James Whitfield",
     specialty: "Gastroenterology",
+    focus: "your stomach or digestion",
+    profile:
+      "Heartburn, burning in the chest or throat after eating, acid reflux, bloating, cramps, stomach pain, nausea, vomiting, diarrhea, constipation, indigestion, liver and bowel problems.",
     keywords: [
       "stomach", "digestive", "bowel", "acid", "reflux", "nausea",
       "bloating", "IBS", "constipation", "diarrhea", "abdominal pain",
@@ -60,7 +74,7 @@ export const UNSUPPORTED_CONDITIONS = [
 ];
 
 export function providerProfile(doctor: Doctor): string {
-  return `${doctor.specialty}. Conditions treated: ${doctor.keywords.join(", ")}`;
+  return `${doctor.specialty}. ${doctor.profile}`;
 }
 
 function containsTerm(text: string, term: string): boolean {

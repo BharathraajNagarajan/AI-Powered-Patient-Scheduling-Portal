@@ -11,6 +11,7 @@ export const RATE_RULES = {
   chat: { limit: 30, windowMs: 60_000 },
   book: { limit: 10, windowMs: 60_000 },
   slotsSelect: { limit: 10, windowMs: 60_000 },
+  providerSelect: { limit: 10, windowMs: 60_000 },
   initiateCall: { limit: 3, windowMs: 10 * 60_000 },
 } satisfies Record<string, RateRule>;
 

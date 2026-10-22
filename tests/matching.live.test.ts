@@ -21,10 +21,16 @@ describe.skipIf(!live)("live semantic matching", () => {
       const { matchProvider } = await import("@/lib/matching");
       const result = await matchProvider(testCase.text);
       if (testCase.kind === "unsupported") {
-        expect(result.doctor).toBeNull();
+        expect(result.status).not.toBe("matched");
       } else {
         expect(result.path).toBe("semantic");
-        expect(result.doctor?.specialty).toBe(testCase.expected);
+        const specialties =
+          result.status === "matched"
+            ? [result.doctor?.specialty]
+            : result.candidates.map((candidate) => candidate.specialty);
+        expect(result.status).not.toBe("none");
+        expect(specialties).toContain(testCase.expected);
+        if (result.status === "matched") expect(result.doctor?.specialty).toBe(testCase.expected);
       }
     });
   }

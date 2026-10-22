@@ -184,6 +184,23 @@ export function useChatSession() {
     [request, fail, refresh]
   );
 
+  const selectProvider = useCallback(
+    async (providerId: string) => {
+      const id = sessionIdRef.current;
+      if (!id) return;
+      dispatch({ type: "SELECT_SLOT" });
+      try {
+        const { stale, value } = await request((signal) =>
+          api<ChatResponse>("/api/provider/select", { method: "POST", body: { sessionId: id, providerId }, signal })
+        );
+        if (!stale) dispatch({ type: "RECEIVE", response: value });
+      } catch (err) {
+        fail(err);
+      }
+    },
+    [request, fail]
+  );
+
   const confirmBooking = useCallback(async () => {
     const id = sessionIdRef.current;
     if (!id) return;
@@ -206,6 +223,7 @@ export function useChatSession() {
     sessionId: state.session?.sessionId ?? null,
     send,
     selectSlot,
+    selectProvider,
     confirmBooking,
     dismissError,
   };

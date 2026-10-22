@@ -1,7 +1,22 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { isUnsupported, matchDoctor } from "@/lib/doctors";
-import { cosine, MATCH_THRESHOLD, matchProvider, pickMatch, rankProviders } from "@/lib/matching";
+import {
+  classifyScores,
+  cosine,
+  DEFAULT_BAND,
+  HIGH_THRESHOLD,
+  LOW_THRESHOLD,
+  matchProvider,
+  MIN_MARGIN,
+  rankProviders,
+} from "@/lib/matching";
 import { dropTempDb, useTempDb } from "./helpers";
+
+const band = { high: 0.5, low: 0.2, margin: 0.25 };
+const top = (first: number, second: number) => [
+  { providerId: "a", score: first },
+  { providerId: "b", score: second },
+];
 
 describe("cosine and ranking", () => {
   it("computes cosine similarity", () => {
@@ -23,13 +38,42 @@ describe("cosine and ranking", () => {
     expect(ranked.map((r) => r.providerId)).toEqual(["b", "c"]);
     expect(ranked[0].score).toBeGreaterThan(ranked[1].score);
   });
+});
 
-  it("applies the threshold at the boundary", () => {
-    expect(MATCH_THRESHOLD).toBe(0.35);
-    expect(pickMatch([{ providerId: "a", score: 0.35 }])?.providerId).toBe("a");
-    expect(pickMatch([{ providerId: "a", score: 0.3499 }])).toBeNull();
-    expect(pickMatch([])).toBeNull();
-    expect(pickMatch([{ providerId: "a", score: 0.5 }], 0.6)).toBeNull();
+describe("confidence band", () => {
+  it("keeps the constants in one consistent place", () => {
+    expect(LOW_THRESHOLD).toBeLessThanOrEqual(HIGH_THRESHOLD);
+    expect(DEFAULT_BAND).toEqual({ high: HIGH_THRESHOLD, low: LOW_THRESHOLD, margin: MIN_MARGIN });
+  });
+
+  it("matches when the top score is high and the margin is wide", () => {
+    expect(classifyScores(top(0.75, 0.5), band)).toBe("matched");
+    expect(classifyScores(top(0.9, 0.1), band)).toBe("matched");
+  });
+
+  it("is uncertain when the margin is too small", () => {
+    expect(classifyScores(top(0.75, 0.55), band)).toBe("uncertain");
+  });
+
+  it("is uncertain when the top score is between the thresholds", () => {
+    expect(classifyScores(top(0.4, 0.05), band)).toBe("uncertain");
+    expect(classifyScores(top(0.2, 0.0), band)).toBe("uncertain");
+  });
+
+  it("returns none below the low threshold or without scores", () => {
+    expect(classifyScores(top(0.19, 0.0), band)).toBe("none");
+    expect(classifyScores([], band)).toBe("none");
+  });
+
+  it("classifies fixed vectors end to end", () => {
+    const providers = [
+      { providerId: "a", vector: [1, 0, 0, 0, 0] },
+      { providerId: "b", vector: [0, 1, 0, 0, 0] },
+      { providerId: "c", vector: [0, 0, 1, 0, 0] },
+    ];
+    expect(classifyScores(rankProviders([1, 0.05, 0, 0, 0], providers), band)).toBe("matched");
+    expect(classifyScores(rankProviders([1, 0.9, 0, 0, 0], providers), band)).toBe("uncertain");
+    expect(classifyScores(rankProviders([0.1, 0.1, 0.1, 3, 3], providers), band)).toBe("none");
   });
 });
 
@@ -54,18 +98,20 @@ describe("matchProvider", () => {
   it("uses the keyword path when the model is mocked", async () => {
     const result = await matchProvider("itchy skin rash");
     expect(result.path).toBe("keyword");
+    expect(result.status).toBe("matched");
     expect(result.doctor?.specialty).toBe("Dermatology");
   });
 
-  it("returns no match for unsupported conditions", async () => {
+  it("returns none for unsupported conditions", async () => {
     const result = await matchProvider("vision problems");
     expect(result.path).toBe("unsupported");
+    expect(result.status).toBe("none");
     expect(result.doctor).toBeNull();
   });
 
   it("returns none when nothing matches", async () => {
     const result = await matchProvider("general tiredness");
     expect(result.path).toBe("none");
-    expect(result.doctor).toBeNull();
+    expect(result.status).toBe("none");
   });
 });

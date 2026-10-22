@@ -10,6 +10,8 @@ import type {
   ReservationView,
 } from "./types";
 
+export type MatchStage = "clarifying" | "choosing";
+
 export const MAX_CALLS_PER_SESSION = 3;
 const MAX_STORED_MESSAGES = 100;
 
@@ -23,6 +25,8 @@ export interface Session {
   smsOptIn: boolean;
   matchedProviderId: string | null;
   matchScore: number | null;
+  matchStage: MatchStage | null;
+  matchCandidates: string[];
   selectedSlotId: string | null;
   bookingStatus: "pending" | "confirmed";
   bookingId: string | null;
@@ -43,6 +47,8 @@ interface SessionRow {
   sms_opt_in: number;
   matched_provider_id: string | null;
   match_score: number | null;
+  match_stage: MatchStage | null;
+  match_candidates: string | null;
   selected_slot_id: string | null;
   booking_status: "pending" | "confirmed";
   booking_id: string | null;
@@ -64,6 +70,8 @@ function mapRow(row: SessionRow): Session {
     smsOptIn: row.sms_opt_in === 1,
     matchedProviderId: row.matched_provider_id,
     matchScore: row.match_score,
+    matchStage: row.match_stage,
+    matchCandidates: row.match_candidates ? (JSON.parse(row.match_candidates) as string[]) : [],
     selectedSlotId: row.selected_slot_id,
     bookingStatus: row.booking_status,
     bookingId: row.booking_id,
@@ -103,8 +111,17 @@ export function getSession(id: string): Session | null {
 
 export function setMatch(sessionId: string, providerId: string, score: number | null): void {
   getDb()
-    .prepare("UPDATE sessions SET matched_provider_id = ?, match_score = ?, updated_at = ? WHERE id = ?")
+    .prepare(
+      `UPDATE sessions SET matched_provider_id = ?, match_score = ?, match_stage = NULL, match_candidates = NULL,
+       updated_at = ? WHERE id = ?`
+    )
     .run(providerId, score, new Date().toISOString(), sessionId);
+}
+
+export function setMatchStage(sessionId: string, stage: MatchStage | null, candidates: string[]): void {
+  getDb()
+    .prepare("UPDATE sessions SET match_stage = ?, match_candidates = ?, updated_at = ? WHERE id = ?")
+    .run(stage, stage ? JSON.stringify(candidates) : null, new Date().toISOString(), sessionId);
 }
 
 export function appendMessages(sessionId: string, messages: ChatMessage[]): void {

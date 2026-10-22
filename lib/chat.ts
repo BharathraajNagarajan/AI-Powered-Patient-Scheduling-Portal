@@ -5,7 +5,7 @@ import { log } from "./log";
 import { matchProvider } from "./matching";
 import { officeInfo } from "./office-info";
 import { buildSystemPrompt } from "./prompt";
-import { getDoctor } from "./doctors";
+import { getDoctor, type Doctor } from "./doctors";
 import { listOfferedSlots, RESERVATION_MS, reserveSlot } from "./slots";
 import {
   appendMessages,
@@ -13,6 +13,7 @@ import {
   providerView,
   reservationView,
   setMatch,
+  setMatchStage,
   toPublicSession,
   type Session,
 } from "./sessions";
@@ -34,12 +35,31 @@ export function heldText(label: string, providerName: string): string {
   return `I am holding ${label} with ${providerName} for you for ${minutes} minutes. Would you like me to confirm this booking?`;
 }
 
+export function clarifyQuestion(candidates: Doctor[]): string {
+  const [first, second] = candidates;
+  return `Thanks for sharing that. I want to point you to the right specialist. Is this mostly about ${first.focus}, or about ${second.focus}?`;
+}
+
+export function choosePrompt(): string {
+  return "I want to make sure you see the right doctor. Please choose the specialist that fits best.";
+}
+
+export function providerChosenText(doctor: Doctor): string {
+  return `Great, I will connect you with ${doctor.name} (${doctor.specialty}). Here are the next available times. Which one works for you?`;
+}
+
 export function buildUi(sessionId: string, now: number = Date.now()): ChatUi {
   const session = getSession(sessionId);
   if (!session) return {};
   const ui: ChatUi = {};
   const provider = providerView(session);
   if (provider) ui.provider = provider;
+  if (!session.matchedProviderId && session.matchStage === "choosing") {
+    ui.choices = session.matchCandidates
+      .map((id) => getDoctor(id))
+      .filter((d): d is Doctor => d !== null)
+      .map((d) => ({ id: d.id, name: d.name, specialty: d.specialty }));
+  }
   if (session.bookingStatus === "confirmed") {
     const view = toPublicSession(session, now).booking;
     if (view) ui.booking = view;
@@ -129,23 +149,45 @@ export async function handleChat(
   }
 
   const userText = initial ? `My chief complaint is: ${session.chiefComplaint}` : (message as string);
-  const matchText = initial ? session.chiefComplaint : (message as string);
   let matchPath = "existing";
+  let justMatched = false;
 
   if (!session.matchedProviderId && session.bookingStatus !== "confirmed") {
+    const stage = session.matchStage;
+    const matchText = initial ? session.chiefComplaint : stage ? `${session.chiefComplaint} ${message}` : (message as string);
     const match = await matchProvider(matchText);
     matchPath = match.path;
-    if (match.path === "unsupported") {
+    log("info", "provider_match", {
+      route: "/api/chat",
+      sessionId,
+      matchPath,
+      matchStatus: match.status,
+      stage: stage ?? "none",
+    });
+
+    const finish = (reply: string): ChatResult => {
       const newMessages = initial ? [] : [stamp("user", userText)];
-      appendMessages(sessionId, [...newMessages, stamp("assistant", ERROR_MESSAGES.noSpecialist)]);
-      log("info", "chat_unsupported", { route: "/api/chat", sessionId, matchPath, latencyMs: Date.now() - started });
-      return respond(sessionId, ERROR_MESSAGES.noSpecialist);
-    }
-    if (match.doctor) {
+      appendMessages(sessionId, [...newMessages, stamp("assistant", reply)]);
+      log("info", "chat_complete", { route: "/api/chat", sessionId, matchPath, latencyMs: Date.now() - started });
+      return respond(sessionId, reply);
+    };
+
+    if (match.status === "matched" && match.doctor) {
       setMatch(sessionId, match.doctor.id, match.score);
       session = getSession(sessionId) as Session;
+      justMatched = true;
+    } else if (match.status === "uncertain" && match.candidates.length === 2) {
+      const ids = match.candidates.map((d) => d.id);
+      if (stage) {
+        setMatchStage(sessionId, "choosing", ids);
+        return finish(choosePrompt());
+      }
+      setMatchStage(sessionId, "clarifying", ids);
+      return finish(clarifyQuestion(match.candidates));
+    } else if (initial || stage || match.path === "unsupported") {
+      setMatchStage(sessionId, null, []);
+      return finish(ERROR_MESSAGES.noSpecialist);
     }
-    log("info", "provider_match", { route: "/api/chat", sessionId, matchPath, matched: Boolean(match.doctor) });
   }
 
   const doctor = session.matchedProviderId ? getDoctor(session.matchedProviderId) : null;
@@ -171,7 +213,7 @@ export async function handleChat(
       providerName: doctor?.name ?? null,
       specialty: doctor?.specialty ?? null,
       hasHeldSlot: Boolean(held),
-      isInitial: initial,
+      isInitial: initial || justMatched,
     });
   } catch (err) {
     log("error", "llm_failed", { route: "/api/chat", sessionId, error: err, mock: isMockLlm() });
@@ -202,6 +244,24 @@ export function handleSelectSlot(sessionId: string, slotId: string): ChatResult 
     return { ok: false, status, error };
   }
   const reply = heldText(result.slot.label, providerName);
+  appendMessages(sessionId, [stamp("assistant", reply)]);
+  return respond(sessionId, reply);
+}
+
+export function handleSelectProvider(sessionId: string, providerId: string): ChatResult {
+  const session = getSession(sessionId);
+  if (!session) return { ok: false, status: 404, error: ERROR_MESSAGES.sessionNotFound };
+  const doctor = getDoctor(providerId);
+  if (
+    !doctor ||
+    session.matchedProviderId ||
+    session.matchStage !== "choosing" ||
+    !session.matchCandidates.includes(providerId)
+  ) {
+    return { ok: false, status: 400, error: ERROR_MESSAGES.invalidInput };
+  }
+  setMatch(sessionId, doctor.id, null);
+  const reply = providerChosenText(doctor);
   appendMessages(sessionId, [stamp("assistant", reply)]);
   return respond(sessionId, reply);
 }

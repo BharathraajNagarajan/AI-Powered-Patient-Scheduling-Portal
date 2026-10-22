@@ -31,6 +31,12 @@ export interface ProviderView {
   matchScore: number | null;
 }
 
+export interface ProviderChoice {
+  id: string;
+  name: string;
+  specialty: string;
+}
+
 export interface BookingView {
   bookingId: string;
   provider: string;
@@ -47,6 +53,7 @@ export interface ChatUi {
   provider?: ProviderView;
   slots?: SlotView[];
   booking?: BookingView;
+  choices?: ProviderChoice[];
 }
 
 export interface PublicSession {
