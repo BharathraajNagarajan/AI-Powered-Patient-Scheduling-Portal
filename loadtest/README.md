@@ -63,15 +63,28 @@ Set `DATA_DIR` to the same directory the server used. PowerShell: `$env:DATA_DIR
 
 ## Results
 
-| Date | Peak VUs | Total requests | Bookings succeeded | 409 conflicts | Error rate | Integrity check |
-|------|----------|----------------|--------------------|---------------|------------|-----------------|
-|      |          |                |                    |               |            |                 |
+Run on an AWS EC2 t3.small (2 vCPU, 2 GB RAM, 2 GB swap), Ubuntu 24.04, Node 22. k6 ran on the same host against a mock instance on 127.0.0.1:3100 while the production PM2 cluster (2 workers) was running. Full ramp to 500 virtual users.
+
+| Date | Instance | Peak VUs | Total requests | Bookings succeeded | 409 conflicts | Error rate | Integrity check |
+|------|----------|----------|----------------|--------------------|---------------|------------|-----------------|
+| 2026-10-22 | t3.small | 500 | 33840 | 504 | 0 | 0.00% | OK (6 of 6 checks passed) |
 
 Latency per endpoint (milliseconds):
 
 | Run date | Endpoint | Requests | p50 | p95 | p99 | Error rate |
 |----------|----------|----------|-----|-----|-----|------------|
-|          | session  |          |     |     |     |            |
-|          | chat     |          |     |     |     |            |
-|          | select   |          |     |     |     |            |
-|          | book     |          |     |     |     |            |
+| 2026-10-22 | all | 33840 | 3.4 | 18.8 | 51.2 | 0.00% |
+| 2026-10-22 | session | 16416 | 3.0 | 23.5 | 69.8 | 0.00% |
+| 2026-10-22 | chat | 16416 | 3.6 | 15.2 | 40.0 | 0.00% |
+| 2026-10-22 | select | 504 | 3.7 | 10.6 | 20.2 | 0.00% |
+| 2026-10-22 | book | 504 | 3.9 | 10.4 | 21.0 | 0.00% |
+
+Server resources during the run, sampled every 4 seconds:
+
+| Metric | Peak |
+|--------|------|
+| Total CPU utilization (both vCPUs) | 55.5% |
+| Memory in use (whole host) | 988 MB of 1905 MB |
+| Combined node process RSS (2 production workers, mock instance, PM2 daemon) | 617 MB |
+
+Both thresholds passed (http_req_failed below 1 percent, http_req_duration p95 below 800 ms). The demo calendar holds 504 slots, all of which were booked, so the 15912 iterations after that took the no-slot path and the book endpoint ran 504 times. The 33840 requests include those iterations.

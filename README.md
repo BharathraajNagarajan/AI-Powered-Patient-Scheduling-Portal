@@ -57,7 +57,7 @@ PM2 cluster (Next.js, one worker per CPU core)
 
 ## Running locally
 
-Requirements: Node.js 20 or newer.
+Requirements: Node.js 22 or newer.
 
 ```
 git clone <repository url>
@@ -112,7 +112,7 @@ With `OPENAI_API_KEY` in `.env.local`, `npm run calibrate` scores a labeled set 
 
 Target: Ubuntu 22.04 with a domain pointing at the server.
 
-1. Bootstrap the machine once: `sudo bash deploy/setup.sh`. It adds a 2 GB swapfile, installs Node 20, build tools, Nginx, Certbot, and PM2, registers PM2 to start on boot, and opens ports 22, 80, and 443.
+1. Bootstrap the machine once: `sudo bash deploy/setup.sh`. It adds a 2 GB swapfile, installs Node 22, build tools, Nginx, Certbot, and PM2, registers PM2 to start on boot, and opens ports 22, 80, and 443.
 2. Clone the repository as the app user and create `.env` from `.env.example`.
 3. Run `bash deploy/deploy.sh`. It pulls, installs, builds, starts or reloads the PM2 cluster (`ecosystem.config.js`), and checks `/api/health`.
 4. Get a certificate with `sudo certbot certonly --nginx -d <your domain>`, copy `deploy/nginx.conf` to `/etc/nginx/sites-available/`, replace the domain, enable it, and run `sudo nginx -t && sudo systemctl reload nginx`.

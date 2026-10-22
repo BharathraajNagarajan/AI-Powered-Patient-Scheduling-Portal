@@ -28,8 +28,8 @@ apt-get update -y
 apt-get install -y ca-certificates curl gnupg build-essential nginx certbot python3-certbot-nginx ufw git
 
 NODE_MAJOR="$(node -v 2>/dev/null | sed -E 's/^v([0-9]+).*/\1/' || true)"
-if [ "${NODE_MAJOR:-0}" != "20" ]; then
-  curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+if [ "${NODE_MAJOR:-0}" != "22" ]; then
+  curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
   apt-get install -y nodejs
 fi
 

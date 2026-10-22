@@ -90,21 +90,26 @@ export function buildSmsBody(notice: BookingNotice): string {
   return `${officeInfo.name}: Appt confirmed with ${notice.providerName} on ${notice.label}. Booking ID: ${notice.bookingId}. Call ${officeInfo.phone} for help.`;
 }
 
-export async function sendBookingEmail(notice: BookingNotice): Promise<void> {
+export function senderAddress(): string {
+  return process.env.RESEND_FROM || `${officeInfo.name} <onboarding@resend.dev>`;
+}
+
+export async function sendBookingEmail(notice: BookingNotice): Promise<string | null> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     log("warn", "email_skipped", { reason: "RESEND_API_KEY not set" });
-    return;
+    return null;
   }
   const resend = new Resend(apiKey);
   const { data, error } = await resend.emails.send({
-    from: `${officeInfo.name} <onboarding@resend.dev>`,
+    from: senderAddress(),
     to: [notice.email],
     subject: `Appointment Confirmed - ${notice.providerName} - Booking ${notice.bookingId}`,
     html: buildEmailHtml(notice),
   });
   if (error) throw new Error(error.message);
   log("info", "email_sent", { emailId: data?.id, email: notice.email });
+  return data?.id ?? null;
 }
 
 export async function sendBookingSms(notice: BookingNotice): Promise<void> {

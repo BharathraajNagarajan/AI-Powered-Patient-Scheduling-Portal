@@ -119,7 +119,8 @@ function row(label, name, data) {
   if (!duration) return `${label.padEnd(10)} no data`;
   const v = duration.values;
   const errorRate = failed ? (failed.values.rate * 100).toFixed(2) : "n/a";
-  return `${label.padEnd(10)} ${String(v.count ?? "").padStart(8)} ${ms(v.med).padStart(9)} ${ms(v["p(95)"]).padStart(9)} ${ms(v["p(99)"]).padStart(9)} ${errorRate.padStart(9)}`;
+  const requests = failed ? failed.values.passes + failed.values.fails : "n/a";
+  return `${label.padEnd(10)} ${String(requests).padStart(8)} ${ms(v.med).padStart(9)} ${ms(v["p(95)"]).padStart(9)} ${ms(v["p(99)"]).padStart(9)} ${errorRate.padStart(9)}`;
 }
 
 function counter(data, name) {
